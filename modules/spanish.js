@@ -192,21 +192,21 @@ module.exports = class SpanishDb {
     analyseTextFile(file) {
         const input = fs.readFileSync(file, 'utf-8');
         const lines = input.split('.');
-    
+
         for (const line of lines) {
             if (line.trim() === '') continue;
-    
+
             const cleanLine = line.replace(/[\r\n]+/g, '');
             console.log(cleanLine);
-    
+
             tokens = line.trim().split(/\s+/);
             currentTokenIndex = 0;
             tok = this.scanner();
-    
-            this.Oracion();
-    
+
+            this.parseSentence();
+
             if (tok !== FIN) this.error();
-    
+
             console.log('La oración es válida.');
         }
     }
@@ -241,6 +241,21 @@ module.exports = class SpanishDb {
             this.error();
         }
     }
+
+    // Analizar una oración completa.
+
+    parseSentence() {
+        if (this.findElemNomb(this.ARTICLES, tok) || this.findElemNomb(this.SUBJECTS, tok)) {
+            this.Sujeto();
+            this.Predicado();
+        } else if (this.findElemNomb(this.VERBS, tok)) {
+            this.Predicado();
+        } else {
+            console.log('Falló en Oracion');
+            this.error();
+        }
+    }
+    
     
     Sujeto() {
         if(this.findElemNomb(this.ARTICLES, tok)){
