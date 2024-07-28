@@ -17,13 +17,9 @@ module.exports = class SpanishDb {
     }
 
     loadBdFromFile() {
-        // Load data from a JSON file
         let str = fs.readFileSync('./diccionario/spanish.json').toString();
-
-        // Parse the JSON
         let struct = JSON.parse(str);
 
-        // Validate data
         if (str != null && struct != null)
             this.bd = struct;
         else
@@ -33,7 +29,6 @@ module.exports = class SpanishDb {
     findWordToken(word) {
         let resu = [];
 
-        // List of  and arrays
         let listFn = [
             { list: this.bd.adjetivos, val: 'adjetivo', fn: this.findElemNomb },
             { list: this.bd.adverbios, val: 'adverbio', fn: this.findElemNomb },
@@ -45,7 +40,6 @@ module.exports = class SpanishDb {
             { list: this.bd.lugares, val: 'lugar', fn: this.findElemNomb }
         ];
 
-        // Check each word against categories
         listFn.forEach((item) => {
             if (item.fn(item.list, word))
                 resu.push(item.val);
@@ -77,38 +71,29 @@ module.exports = class SpanishDb {
         return (items[cleanStr(word)] != null);
     }
 
-	//Parseo una oración y reviso a que grupo pertenece cada palabra.
-	analyseText(texto){
-		let final   = [];
+    analyseText(texto) {
+        let final = [];
+        let bloques = texto.split(" ");
 
-		//Parseo en base a los espacios en blanco.
-		let bloques = texto.split(" ");
+        bloques.forEach((elem) => {
+            let token = this.findWordToken(elem);
+            final.push({ "word": elem, "token": token });
+        });
+        return final;
+    }
 
-		//Itero palabra por palabra
-		bloques.forEach((elem)=>{			
-			//Traigo los grupos que pertenece cada palabra.
-			let token = this.findWordToken(elem);
+    analyseTextArray(texto) {
+        let resu = this.analyseText(texto);
+        let salida = [];
 
-			//Grabo los resultados del analisis.
-			final.push({"word":elem,"token":token});
-		});
-		return final;
-	}
+        resu.forEach((item) => {
+            salida[item.word] = item.token;
+        });
 
-	//Parseo la oración y la obtengo en forma de array.
-	analyseTextArray(texto){
-		let resu   = this.analyseText(texto);
-		let salida = [];
-
-		resu.forEach((item)=>{
-			salida[item.word]=item.token;
-		});
-
-		return salida;
-	}
+        return salida;
+    }
 
     classifyWords() {
-        // Classify words based on their tokens
         this.loadBdFromFile();
     
         if (this.bd) {
@@ -117,15 +102,10 @@ module.exports = class SpanishDb {
             this.VERBS = this.bd.verbos || [];
         }
         
-        //console.log('Initial VERBS:', this.VERBS);  // Add this line to check initialization
-        // Add conjugated verbs to the VERBS array
         this.addConjugatedVerbs();
     }
 
     addConjugatedVerbs() {
-        // console.log('VERBS Type:', Array.isArray(this.VERBS));  // Check if it's an array
-        // console.log('VERBS:', this.VERBS);
-
         const conjugated = [];
 
         if (Array.isArray(this.VERBS)) {
@@ -136,7 +116,6 @@ module.exports = class SpanishDb {
                 }
             });
 
-            // Add conjugated forms to the original VERBS list
             this.VERBS = this.VERBS.concat(conjugated);
         } else {
             console.error('VERBS is not an array');
@@ -144,7 +123,6 @@ module.exports = class SpanishDb {
     }
 
     conjugateVerb(verb) {
-        // Conjugation endings for regular verbs
         const endings = {
             'ar': ['o', 'as', 'a', 'amos', 'áis', 'an'],
             'er': ['o', 'es', 'e', 'emos', 'éis', 'en'],
@@ -153,38 +131,36 @@ module.exports = class SpanishDb {
 
         let stem, verbType, pronoun;
 
-        // Determine verb type (-ar, -er, -ir) and conjugate
         if (verb.endsWith('arse')) {
-            stem = verb.slice(0, -4);  // Remove 'arse' to get the stem
+            stem = verb.slice(0, -4);
             pronoun = "me ";
             verbType = 'ar';
         } else if (verb.endsWith('erse')) {
-            stem = verb.slice(0, -4);  // Remove 'erse' to get the stem
+            stem = verb.slice(0, -4);
             pronoun = "me ";
             verbType = 'er';
         } else if (verb.endsWith('irse')) {
-            stem = verb.slice(0, -4);  // Remove 'irse' to get the stem
+            stem = verb.slice(0, -4);
             pronoun = "me ";
             verbType = 'ir';
         } else {
             if (verb.endsWith('ar')) {
-                stem = verb.slice(0, -2);  // Remove 'ar' to get the stem
+                stem = verb.slice(0, -2);
                 verbType = 'ar';
                 pronoun = "";
             } else if (verb.endsWith('er')) {
-                stem = verb.slice(0, -2);  // Remove 'er' to get the stem
+                stem = verb.slice(0, -2);
                 verbType = 'er';
                 pronoun = "";
             } else if (verb.endsWith('ir')) {
-                stem = verb.slice(0, -2);  // Remove 'ir' to get the stem
+                stem = verb.slice(0, -2);
                 verbType = 'ir';
                 pronoun = "";
             } else {
-                return null;  // Unknown verb type
+                return null;
             }
         }
 
-        // Conjugate verb
         const conjugatedForms = endings[verbType].map(ending => `${pronoun}${stem}${ending}`);
         return conjugatedForms;
     }
@@ -211,39 +187,6 @@ module.exports = class SpanishDb {
         }
     }
 
-    parea(expectedToken) {
-        if (tok === expectedToken) {
-            tok = this.scanner();
-        } else {
-            this.error();
-        }
-    }
-    
-    error() {
-        console.error('Syntax error');
-        process.exit(1);
-    }
-    
-    scanner() {
-        if (currentTokenIndex >= tokens.length) return FIN;
-    
-        const token = tokens[currentTokenIndex++];
-        lexema = token;
-        return token;
-    }
-    
-    Oracion() {
-        if (this.findElemNomb(this.ARTICLES, tok) || this.findElemNomb(this.SUBJECTS, tok)) {
-            this.Sujeto();
-            this.Predicado();
-        } else {
-            console.log('Falló en Oracion');
-            this.error();
-        }
-    }
-
-    // Analizar una oración completa.
-
     parseSentence() {
         if (this.findElemNomb(this.ARTICLES, tok) || this.findElemNomb(this.SUBJECTS, tok)) {
             this.Sujeto();
@@ -255,10 +198,9 @@ module.exports = class SpanishDb {
             this.error();
         }
     }
-    
-    
+
     Sujeto() {
-        if(this.findElemNomb(this.ARTICLES, tok)){
+        if (this.findElemNomb(this.ARTICLES, tok)) {
             this.Articulo();
             this.Sustantivo();
         } else if (this.findElemNomb(this.SUBJECTS, tok)) {
@@ -268,7 +210,16 @@ module.exports = class SpanishDb {
             this.error();
         }
     }
-    
+
+    Articulo() {
+        if (this.findElemNomb(this.ARTICLES, tok)) {
+            this.parea(tok);
+        } else {
+            console.log('Falló en Articulo');
+            this.error();
+        }
+    }
+
     Sustantivo() {
         if (this.findElemNomb(this.SUBJECTS, tok)) {
             this.parea(tok);
@@ -277,31 +228,61 @@ module.exports = class SpanishDb {
             this.error();
         }
     }
-    
+
     Predicado() {
         if (this.findElemNomb(this.VERBS, tok)) {
             this.Verbo();
+            if (this.findElemNomb(this.ARTICLES, tok) || this.findElemNomb(this.SUBJECTS, tok)) {
+                this.Objeto();
+            }
         } else {
-            console.log('Falló en predicado');
+            console.log('Falló en Predicado');
             this.error();
         }
     }
-    
-    Articulo() {
-        if (this.findElemNomb(this.ARTICLES, tok)) {
-            this.parea(tok);
-        } else {
-            console.log('Falló en articulo');
-            this.error();
-        }
-    }
-    
+
     Verbo() {
         if (this.findElemNomb(this.VERBS, tok)) {
             this.parea(tok);
         } else {
-            console.log('Falló en verbo');
+            console.log('Falló en Verbo');
             this.error();
         }
     }
-}
+
+    Objeto() {
+        if (this.findElemNomb(this.ARTICLES, tok)) {
+            this.Articulo();
+            this.Sustantivo();
+        } else if (this.findElemNomb(this.SUBJECTS, tok)) {
+            this.Sustantivo();
+        } else {
+            console.log('Falló en Objeto');
+            this.error();
+        }
+    }
+
+    parea(expectedToken) {
+        if (tok === expectedToken) {
+            tok = this.scanner();
+        } else {
+            this.error();
+        }
+    }
+
+    scanner() {
+        if (currentTokenIndex < tokens.length) {
+            return tokens[currentTokenIndex++];
+        } else {
+            return FIN;
+        }
+    }
+
+    error() {
+        console.error('Syntax error');
+    }
+};
+
+// Crear una instancia de SpanishDb y analizar el archivo de prueba
+const db = new (require('./SpanishDb'))();
+db.analyseTextFile('test_sentences.txt');
